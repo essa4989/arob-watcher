@@ -279,3 +279,4 @@ if __name__ == "__main__":
     threading.Thread(target=run_watcher, daemon=True).start()
     print(f"[{now_str()}] ✅ Watcher + API جاهزان")
     app.run(host="0.0.0.0", port=PORT)
+ 
