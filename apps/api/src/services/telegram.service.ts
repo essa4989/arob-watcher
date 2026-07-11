@@ -42,11 +42,18 @@ export async function sendTelegram(text: string): Promise<{ ok: boolean; results
       const body = await res.json().catch(() => ({}));
       const ok = res.ok && (body as { ok?: boolean }).ok !== false;
       results.push({ chatId: chat.chatId, ok, error: ok ? undefined : JSON.stringify(body) });
-      console.log(`[telegram] chat=${chat.chatId} ok=${ok}`);
+      if (ok) {
+        console.log(`[telegram] chat=${chat.chatId} ok=true`);
+      } else {
+        console.error(`[telegram] chat=${chat.chatId} ok=false reason=${JSON.stringify(body)}`);
+      }
     } catch (err) {
       results.push({ chatId: chat.chatId, ok: false, error: String(err) });
       console.error(`[telegram] chat=${chat.chatId} failed`, err);
     }
   }
-  return { ok: results.some((r) => r.ok) || results.length === 0, results };
+  if (chats.length === 0) {
+    console.warn('[telegram] no enabled chats configured — nothing was sent');
+  }
+  return { ok: results.length > 0 && results.some((r) => r.ok), results };
 }
