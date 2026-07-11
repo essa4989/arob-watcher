@@ -23,7 +23,6 @@ export function buildEntryMessage(type: keyof typeof TYPE_TITLES, lines: string[
   return header(TYPE_TITLES[type] ?? type) + '\n' + lines.join('\n') + footer();
 }
 
-/** Sends `text` (HTML parse mode) to every enabled Telegram chat. Never throws — logs failures per chat. */
 export async function sendTelegram(text: string): Promise<{ ok: boolean; results: Array<{ chatId: string; ok: boolean; error?: string }> }> {
   if (!env.telegramBotToken) {
     console.warn('[telegram] TELEGRAM_BOT_TOKEN not set — skipping send');
