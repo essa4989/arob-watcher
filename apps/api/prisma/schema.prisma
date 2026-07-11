@@ -239,3 +239,14 @@ model TelegramChat {
   label   String?
   enabled Boolean @default(true)
 }
+
+
+/// Web Push subscriptions, one row per device/browser.
+model PushSubscription {
+id        String   @id @default(cuid())
+endpoint  String   @unique
+p256dh    String
+auth      String
+device    String?
+createdAt DateTime @default(now())
+}
