@@ -1,5 +1,8 @@
 import { env } from '../config/env';
 import { prisma } from '../db/prisma';
+import { sendPushToAll } from './push.service';
+
+const URGENT_MARKERS = ['🚨', '🔴'];
 
 const TYPE_TITLES: Record<string, string> = {
     catheter: '💗 تسجيل قسطرة',
@@ -25,6 +28,7 @@ export function buildEntryMessage(type: keyof typeof TYPE_TITLES, lines: string[
 
 /** Sends text (HTML parse mode) to every enabled Telegram chat. Never throws — logs failures per chat. */
 export async function sendTelegram(text: string): Promise<{ ok: boolean; results: Array<{ chatId: string; ok: boolean; error?: string }> }> {
+    void sendPushToAll(text, URGENT_MARKERS.some((m) => text.includes(m))).catch((err) => console.error('[push] fan-out failed', err));
     if (!env.telegramBotToken) {
           console.warn('[telegram] TELEGRAM_BOT_TOKEN not set — skipping send');
           return { ok: false, results: [] };
