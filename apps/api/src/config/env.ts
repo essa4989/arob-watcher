@@ -14,6 +14,9 @@ export const env = {
   databaseUrl: required('DATABASE_URL'),
   jwtSecret: required('JWT_SECRET', 'dev-only-insecure-secret'),
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? '',
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? '',
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? '',
+  vapidSubject: process.env.VAPID_SUBJECT ?? 'mailto:admin@example.com',
   defaultPins: {
     parent: process.env.DEFAULT_PIN_PARENT ?? '1234',
     nurse: process.env.DEFAULT_PIN_NURSE ?? '5678',
