@@ -23,10 +23,9 @@ export function buildEntryMessage(type: keyof typeof TYPE_TITLES, lines: string[
   return header(TYPE_TITLES[type] ?? type) + '\n' + lines.join('\n') + footer();
 }
 
-/** Sends `text` (HTML parse mode) to every enabled Telegram chat. Never throws — logs failures per chat. */
 export async function sendTelegram(text: string): Promise<{ ok: boolean; results: Array<{ chatId: string; ok: boolean; error?: string }> }> {
   if (!env.telegramBotToken) {
-    console.warn('[telegram] TELEGRAM_BOT_TOKEN not set — skipping send');
+    console.warn('[telegram] TELEGRAM_BOT_TOKEN not set');
     return { ok: false, results: [] };
   }
   const chats = await prisma.telegramChat.findMany({ where: { enabled: true } });
@@ -42,18 +41,13 @@ export async function sendTelegram(text: string): Promise<{ ok: boolean; results
       const body = await res.json().catch(() => ({}));
       const ok = res.ok && (body as { ok?: boolean }).ok !== false;
       results.push({ chatId: chat.chatId, ok, error: ok ? undefined : JSON.stringify(body) });
-      if (ok) {
-        console.log(`[telegram] chat=${chat.chatId} ok=true`);
-      } else {
-        console.error(`[telegram] chat=${chat.chatId} ok=false reason=${JSON.stringify(body)}`);
-      }
+      
+      if (!ok) console.error(`[telegram] Error for chat ${chat.chatId}:`, body);
+      else console.log(`[telegram] Success for chat ${chat.chatId}`);
     } catch (err) {
       results.push({ chatId: chat.chatId, ok: false, error: String(err) });
-      console.error(`[telegram] chat=${chat.chatId} failed`, err);
+      console.error(`[telegram] Exception for chat ${chat.chatId}:`, err);
     }
-  }
-  if (chats.length === 0) {
-    console.warn('[telegram] no enabled chats configured — nothing was sent');
   }
   return { ok: results.length > 0 && results.some((r) => r.ok), results };
 }
