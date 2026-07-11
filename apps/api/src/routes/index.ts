@@ -7,6 +7,7 @@ import { rewardsRouter } from './rewards.routes';
 import { medScheduleRouter } from './medSchedule.routes';
 import { reportsRouter } from './reports.routes';
 import { settingsRouter } from './settings.routes';
+import { pushRouter } from './push.routes';
 import { attachSession } from '../middleware/auth';
 import { attachChild } from '../middleware/child';
 
@@ -22,3 +23,4 @@ apiRouter.use('/rewards', rewardsRouter);
 apiRouter.use('/med-schedule', medScheduleRouter);
 apiRouter.use('/reports', reportsRouter);
 apiRouter.use('/settings', settingsRouter);
+apiRouter.use('/push', pushRouter);
