@@ -1,0 +1,27 @@
+{
+  "name": "arob-watcher",
+  "private": true,
+  "version": "1.0.0",
+  "description": "منصة رعاية عروب — نظام مراقبة رعاية منزلية متكامل (Independent full-stack, PostgreSQL-backed)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/api & npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
+    "build:shared": "npm run build --workspace=packages/shared",
+    "build:api": "npm run build --workspace=apps/api",
+    "build:web": "npm run build --workspace=apps/web",
+    "start": "npm run start --workspace=apps/api",
+    "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:generate": "npm run db:generate --workspace=apps/api",
+    "db:seed": "npm run db:seed --workspace=apps/api",
+    "test": "npm run test --workspace=apps/api --if-present && npm run test --workspace=apps/web --if-present"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,241 @@
+// Aroob Home Care Platform — PostgreSQL schema
+// Replaces Google Sheets (historical log) + PropertiesService (state/settings)
+// from the legacy Apps Script system, while preserving 100% of its business rules.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  parent
+  nurse
+  doctor
+}
+
+enum RewardStatus {
+  pending
+  available
+  claimed
+}
+
+model Child {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  catheterLogs   CatheterLog[]
+  medicationLogs MedicationLog[]
+  checkLogs      CheckLog[]
+  fluidLogs      FluidLog[]
+  careLogs       CareLog[]
+  medSchedules   MedSchedule[]
+  journeyLogs    JourneyLog[]
+  rewards        Reward[]
+  settings       AppSetting[]
+}
+
+/// PIN credentials per role (bcrypt hash). Replaces PIN_PARENT / PIN_NURSE / PIN_DOCTOR.
+model Credential {
+  role      Role     @id
+  pinHash   String
+  updatedAt DateTime @updatedAt
+}
+
+/// Login sessions. Replaces session_<uuid> Properties keys. TTL = 7 days.
+model Session {
+  token     String   @id @default(uuid())
+  role      Role
+  device    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model CatheterLog {
+  id            String   @id @default(cuid())
+  childId       String
+  child         Child    @relation(fields: [childId], references: [id])
+  timestamp     DateTime @default(now())
+  amount        Int
+  color         String?
+  smell         String?
+  pain          String?
+  notes         String?
+  device        String?
+  createdByRole Role?
+
+  @@index([childId, timestamp])
+}
+
+model MedicationLog {
+  id            String   @id @default(cuid())
+  childId       String
+  child         Child    @relation(fields: [childId], references: [id])
+  timestamp     DateTime @default(now())
+  med           String
+  dose          String?
+  method        String?
+  response      String?
+  notes         String?
+  medScheduleId String?
+  device        String?
+  createdByRole Role?
+
+  @@index([childId, timestamp])
+}
+
+model CheckLog {
+  id            String   @id @default(cuid())
+  childId       String
+  child         Child    @relation(fields: [childId], references: [id])
+  timestamp     DateTime @default(now())
+  temp          Float?
+  bp            String?
+  pulse         Int?
+  spo2          Int?
+  skin          String?
+  consciousness String?
+  position      String?
+  notes         String?
+  device        String?
+  createdByRole Role?
+
+  @@index([childId, timestamp])
+}
+
+model FluidLog {
+  id            String   @id @default(cuid())
+  childId       String
+  child         Child    @relation(fields: [childId], references: [id])
+  timestamp     DateTime @default(now())
+  fluidType     String
+  amount        Int
+  response      String?
+  notes         String?
+  device        String?
+  createdByRole Role?
+
+  @@index([childId, timestamp])
+}
+
+model CareLog {
+  id            String   @id @default(cuid())
+  childId       String
+  child         Child    @relation(fields: [childId], references: [id])
+  timestamp     DateTime @default(now())
+  care          String
+  response      String?
+  notes         String?
+  device        String?
+  createdByRole Role?
+
+  @@index([childId, timestamp])
+}
+
+model MedSchedule {
+  id        String   @id @default(cuid())
+  childId   String
+  child     Child    @relation(fields: [childId], references: [id])
+  name      String
+  dose      String?
+  method    String?
+  times     Json // string[] "HH:mm"
+  frequency String?
+  days      Json // string[] day names, empty = every day
+  startDate String?
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  givenMarks MedGivenMark[]
+
+  @@index([childId])
+}
+
+/// Marks a scheduled dose as given, so it is not flagged as missed. Replaces med_given_<id>_<date>_<time>.
+model MedGivenMark {
+  id            String      @id @default(cuid())
+  medScheduleId String
+  medSchedule   MedSchedule @relation(fields: [medScheduleId], references: [id], onDelete: Cascade)
+  date          String // yyyy-MM-dd
+  time          String // HH:mm scheduled slot
+  givenAt       DateTime    @default(now())
+
+  @@unique([medScheduleId, date, time])
+}
+
+model JourneyLog {
+  id          String   @id @default(cuid())
+  childId     String
+  child       Child    @relation(fields: [childId], references: [id])
+  timestamp   DateTime @default(now())
+  type        String // EntryType
+  device      String?
+  totalAtTime Int
+
+  @@index([childId, timestamp])
+}
+
+model Reward {
+  id          String       @id @default(cuid())
+  childId     String
+  child       Child        @relation(fields: [childId], references: [id])
+  title       String
+  description String?
+  starsNeeded Int
+  status      RewardStatus @default(pending)
+  createdAt   DateTime     @default(now())
+  achievedAt  DateTime?
+  claimedAt   DateTime?
+
+  @@index([childId])
+}
+
+/// Security audit trail. Replaces _audit_log sheet.
+model AuditLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  action    String
+  details   Json?
+  device    String?
+  role      Role?
+}
+
+/// Settings-change trail. Replaces _settings_log sheet.
+model SettingsChangeLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  setting   String
+  oldValue  String?
+  newValue  String?
+  device    String?
+}
+
+/// Small durable key/value store, per child. Replaces PropertiesService
+/// (sleep mode config, catheter-alert dedup cycle, streak cache, etc.)
+/// Unlike Sheets, Postgres never silently coerces these strings — the
+/// original reason Properties was chosen no longer applies, but the
+/// key/value shape is kept because it maps 1:1 onto the legacy settings.
+model AppSetting {
+  id        String   @id @default(cuid())
+  childId   String
+  child     Child    @relation(fields: [childId], references: [id])
+  key       String
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@unique([childId, key])
+}
+
+/// Telegram broadcast destinations. Replaces TELEGRAM_CHATS JSON property.
+model TelegramChat {
+  id      String  @id @default(cuid())
+  chatId  String  @unique
+  label   String?
+  enabled Boolean @default(true)
+}
